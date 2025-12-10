@@ -5,7 +5,6 @@ import '../model/international_cost.dart';
 class InternationalRepository {
   final _api = NetworkApiServices();
 
-  /// GET: /international-destination?search=...
   Future<List<InternationalDestination>> searchDestination(String keyword) async {
     final response =
         await _api.getApiResponse('international-destination?search=$keyword');
@@ -18,7 +17,6 @@ class InternationalRepository {
     return list.map((e) => InternationalDestination.fromJson(e)).toList();
   }
 
-  /// POST: /international-cost
   Future<List<InternationalCost>> calculateCost({
     required String countryId,
     required int weight,
