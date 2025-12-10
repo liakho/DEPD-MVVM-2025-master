@@ -6,13 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:depd_mvvm_2025/data/app_exception.dart';
 import 'package:depd_mvvm_2025/data/network/base_api_service.dart';
 
-/// Network service adapted for LOCAL CORS PROXY
-/// Default proxy base: http://localhost:3000
-/// If your proxy exposes the RajaOngkir endpoints under /api/v1, keep _proxyPrefix = '/api/v1'.
-/// If your proxy forwards from root (no prefix), set _proxyPrefix = ''.
 class NetworkApiServices implements BaseApiServices {
   static const String _baseUrl = 'http://localhost:3000';
-  static const String _proxyPrefix = '/api/v1'; // change to '' if your proxy uses root paths
+  static const String _proxyPrefix = '/api/v1';
 
   String _buildUrl(String endpoint) {
     final e = endpoint.trim();
