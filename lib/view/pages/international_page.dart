@@ -8,18 +8,18 @@ class InternationalPage extends StatefulWidget {
 }
 
 class _InternationalPageState extends State<InternationalPage> {
-  final weightController = TextEditingController();
-  final searchController = TextEditingController();
+  final TextEditingController weightCtrl = TextEditingController();
+  final TextEditingController countryCtrl = TextEditingController();
 
-  final List<String> courierOptions = ["pos", "tiki"];
-  String selectedCourier = "pos";
-  String? selectedCountryId;
-  bool showSearchList = false;
+  final List<String> couriersAvailable = ['pos', 'tiki'];
+  String courierSelected = 'tiki';
+  String? chosenCountryId;
+  bool showCountryResults = false;
 
   @override
   void dispose() {
-    weightController.dispose();
-    searchController.dispose();
+    weightCtrl.dispose();
+    countryCtrl.dispose();
     super.dispose();
   }
 
@@ -34,290 +34,288 @@ class _InternationalPageState extends State<InternationalPage> {
             padding: const EdgeInsets.all(8),
             child: Column(
               children: [
-                Card(
-                  color: Colors.white,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Courier + Weight (same layout as Home)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: selectedCourier,
-                                items: courierOptions
-                                    .map((c) => DropdownMenuItem(
-                                          value: c,
-                                          child: Text(c.toUpperCase()),
-                                        ))
-                                    .toList(),
-                                onChanged: (v) => setState(() => selectedCourier = v ?? 'pos'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextField(
-                                controller: weightController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Berat (gr)',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Destination (country search)
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Destination (Country)",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        TextField(
-                          controller: searchController,
-                          decoration: InputDecoration(
-                            hintText: "Cari Negara (e.g. Japan)",
-                            suffixIcon: showSearchList
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      setState(() {
-                                        showSearchList = false;
-                                        selectedCountryId = null;
-                                        searchController.clear();
-                                      });
-                                    },
-                                  )
-                                : const Icon(Icons.search),
-                          ),
-                          onChanged: (val) {
-                            if (val.trim().isEmpty) {
-                              setState(() => showSearchList = false);
-                              vm.searchCountry('');
-                              return;
-                            }
-                            setState(() => showSearchList = true);
-                            vm.searchCountry(val);
-                          },
-                        ),
-
-                        if (showSearchList)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Builder(builder: (context) {
-                              final list = vm.countryList.data ?? [];
-
-                              if (vm.countryList.status == Status.loading) {
-                                return const SizedBox(
-                                  height: 80,
-                                  child: Center(child: CircularProgressIndicator()),
-                                );
-                              }
-
-                              if (list.isEmpty) {
-                                return Container(
-                                  height: 80,
-                                  alignment: Alignment.center,
-                                  child: const Text('Negara tidak ditemukan'),
-                                );
-                              }
-
-                              return Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade200),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ListView.builder(
-                                  itemCount: list.length,
-                                  itemBuilder: (context, i) {
-                                    final country = list[i];
-                                    return ListTile(
-                                      title: Text(country.countryName),
-                                      onTap: () {
-                                        setState(() {
-                                          selectedCountryId = country.countryId;
-                                          searchController.text = country.countryName;
-                                          showSearchList = false;
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                              );
-                            }),
-                          ),
-
-                        const SizedBox(height: 16),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (selectedCountryId != null && weightController.text.isNotEmpty) {
-                                vm.calculateInternationalCost(
-                                  originCityId: "0",
-                                  destinationCountryId: selectedCountryId!,
-                                  weight: int.parse(weightController.text),
-                                  courier: selectedCourier,
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Lengkapi semua field!'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.all(16),
-                            ),
-                            child: const Text(
-                              'Hitung Ongkir',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
+                _buildInputCard(vm),
                 const SizedBox(height: 16),
-
-                Card(
-                  color: Colors.blue[50],
-                  elevation: 2,
-                  child: vm.costList.status == Status.loading
-                      ? const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      : Builder(builder: (context) {
-                          final results = vm.costList.data ?? [];
-
-                          if (results.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: Text("Tidak ada data ongkir.")),
-                            );
-                          }
-
-                          return ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: results.length,
-                            itemBuilder: (context, i) {
-                              final c = results[i];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                                child: ListTile(
-                                  title: Text(
-                                    "${c.name} (${c.code}): ${c.service}",
-                                    style: TextStyle(
-                                      color: Colors.blue[800],
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Biaya: ${c.currency} ${c.cost}"),
-                                      const SizedBox(height: 4),
-                                      Text("Estimasi sampai: ${c.etd}"),
-                                    ],
-                                  ),
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.blue[50],
-                                    child: Icon(Icons.flight, color: Colors.blue[800]),
-                                  ),
-                                  onTap: () {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(20),
-                                          topRight: Radius.circular(20),
-                                        ),
-                                      ),
-                                      builder: (_) => Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                const CircleAvatar(
-                                                  backgroundColor: Color(0xFFE3F2FD),
-                                                  child: Icon(Icons.flight, color: Colors.blue),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Expanded(
-                                                  child: Text(
-                                                    c.name,
-                                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  icon: const Icon(Icons.close),
-                                                ),
-                                              ],
-                                            ),
-                                            const Divider(),
-                                            _row("Nama Kurir", c.name),
-                                            _row("Kode", c.code),
-                                            _row("Layanan", c.service),
-                                            _row("Deskripsi", c.description),
-                                            _row("Biaya", "${c.currency} ${c.cost}"),
-                                            _row("Estimasi Pengiriman", c.etd),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        }),
-                ),
+                _buildOutputCard(vm),
               ],
             ),
           ),
 
-          if (vm.isLoading)
-            Container(
-              color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
+          if (vm.isLoading) _loadingOverlay(),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          SizedBox(width: 120, child: Text(label)),
-          const Text(' : '),
-          Expanded(child: Text(value ?? '-')),
-        ],
+  Widget _buildInputCard(InternationalViewModel vm) {
+    return Card(
+      color: Colors.white,
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(child: _courierDropdown()),
+                const SizedBox(width: 16),
+                Expanded(child: _weightField()),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Destination (Country)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _countrySearchField(vm),
+
+            if (showCountryResults) const SizedBox(height: 8),
+            if (showCountryResults) _countryResultsBox(vm),
+
+            const SizedBox(height: 16),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _onCalculatePressed(vm),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.all(16),
+                ),
+                child: const Text('Hitung Ongkir', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _courierDropdown() {
+    return DropdownButton<String>(
+      isExpanded: true,
+      value: courierSelected,
+      items: couriersAvailable
+          .map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase())))
+          .toList(),
+      onChanged: (v) => setState(() => courierSelected = v ?? couriersAvailable.first),
+    );
+  }
+
+  Widget _weightField() {
+    return TextField(
+      controller: weightCtrl,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(labelText: 'Berat (gr)'),
+    );
+  }
+
+  Widget _countrySearchField(InternationalViewModel vm) {
+    return TextField(
+      controller: countryCtrl,
+      decoration: InputDecoration(
+        hintText: 'Cari Negara (e.g. Singapore)',
+        suffixIcon: showCountryResults
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    showCountryResults = false;
+                    chosenCountryId = null;
+                    countryCtrl.clear();
+                    vm.searchCountry('');
+                  });
+                },
+              )
+            : const Icon(Icons.search),
+      ),
+      onChanged: (text) {
+        final value = text.trim();
+        if (value.isEmpty) {
+          setState(() => showCountryResults = false);
+          vm.searchCountry('');
+          return;
+        }
+        setState(() => showCountryResults = true);
+        vm.searchCountry(value);
+      },
+    );
+  }
+
+  Widget _countryResultsBox(InternationalViewModel vm) {
+    final list = vm.countryList.data ?? [];
+
+    if (vm.countryList.status == Status.loading) {
+      return const SizedBox(
+        height: 80,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (list.isEmpty) {
+      return Container(
+        height: 80,
+        alignment: Alignment.center,
+        child: const Text('Negara tidak ditemukan'),
+      );
+    }
+
+    return Container(
+      height: 150,
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: ListView.builder(
+        itemCount: list.length,
+        itemBuilder: (context, i) {
+          final country = list[i];
+          final name = country.countryName ?? '';
+          final id = country.countryId ?? '';
+
+          return ListTile(
+            title: Text(name),
+            onTap: () {
+              setState(() {
+                chosenCountryId = id;
+                countryCtrl.text = name;
+                showCountryResults = false;
+              });
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _onCalculatePressed(InternationalViewModel vm) {
+    if (chosenCountryId != null && weightCtrl.text.isNotEmpty) {
+      final w = int.tryParse(weightCtrl.text) ?? 0;
+      vm.calculateInternationalCost(
+        originCityId: '0',
+        destinationCountryId: chosenCountryId!,
+        weight: w,
+        courier: courierSelected,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lengkapi semua field!'), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  Widget _buildOutputCard(InternationalViewModel vm) {
+    return Card(
+      color: Colors.blue[50],
+      elevation: 2,
+      child: vm.costList.status == Status.loading
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _outputList(vm),
+    );
+  }
+
+  Widget _outputList(InternationalViewModel vm) {
+    final results = vm.costList.data ?? [];
+
+    if (results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: Text("Tidak ada data ongkir.")),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: results.length,
+      itemBuilder: (context, i) {
+        final item = results[i];
+        return _costTile(item);
+      },
+    );
+  }
+
+  Widget _costTile(dynamic item) {
+    final name = (item.name ?? '');
+    final code = (item.code ?? '');
+    final service = (item.service ?? '');
+    final description = (item.description ?? '');
+    final currency = (item.currency ?? '');
+    final cost = item.cost?.toString() ?? '';
+    final etd = (item.etd ?? '');
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: ListTile(
+        title: Text(
+          '$name ($code): $service',
+          style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.w700),
+        ),
+        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Biaya: $currency $cost'),
+          const SizedBox(height: 4),
+          Text('Estimasi sampai: $etd'),
+        ]),
+        leading: CircleAvatar(backgroundColor: Colors.blue[50], child: Icon(Icons.flight, color: Colors.blue[800])),
+        onTap: () => _showCostDetail(item),
+      ),
+    );
+  }
+
+  void _showCostDetail(dynamic item) {
+    final name = item.name ?? '';
+    final code = item.code ?? '';
+    final service = item.service ?? '';
+    final description = item.description ?? '';
+    final currency = item.currency ?? '';
+    final cost = item.cost?.toString() ?? '';
+    final etd = item.etd ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            const CircleAvatar(backgroundColor: Color(0xFFE3F2FD), child: Icon(Icons.flight, color: Colors.blue)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold))),
+            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+          ]),
+          const Divider(),
+          _detailRow('Nama Kurir', name),
+          _detailRow('Kode', code),
+          _detailRow('Layanan', service),
+          _detailRow('Deskripsi', description),
+          _detailRow('Biaya', '$currency $cost'),
+          _detailRow('Estimasi Pengiriman', etd),
+        ]),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(children: [SizedBox(width: 120, child: Text(label)), const Text(' : '), Expanded(child: Text(value.isEmpty ? '-' : value))]),
+    );
+  }
+
+  Widget _loadingOverlay() {
+    return Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator(color: Colors.white)));
   }
 }

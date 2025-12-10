@@ -14,15 +14,12 @@ class InternationalViewModel extends ChangeNotifier {
   ApiResponse<List<Province>> provinceList = ApiResponse.notStarted();
   ApiResponse<List<City>> cityOriginList = ApiResponse.notStarted();
 
-  // country search results
   ApiResponse<List<InternationalDestination>> countryList = ApiResponse.notStarted();
 
-  // cost results
   ApiResponse<List<InternationalCost>> costList = ApiResponse.notStarted();
 
   bool isLoading = false;
 
-  // Provinces (reused from HomeRepository)
   Future getProvinceList() async {
     if (provinceList.status == Status.completed) return;
     provinceList = ApiResponse.loading();
@@ -48,7 +45,6 @@ class InternationalViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Search international destinations
   Future searchCountry(String keyword) async {
     if (keyword.trim().isEmpty) {
       countryList = ApiResponse.notStarted();
